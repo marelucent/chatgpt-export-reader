@@ -1,0 +1,11 @@
+# Don't commit personal chat data
+conversations.json
+conversations/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
+Thumbs.db
