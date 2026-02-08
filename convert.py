@@ -69,7 +69,11 @@ def extract_message_text(message):
 
 
 def build_message_thread(mapping):
-    """Build an ordered list of messages from the mapping structure."""
+    """Build an ordered list of messages from the mapping structure.
+    
+    Uses iterative traversal to handle deeply nested or circular
+    conversation trees without hitting Python's recursion limit.
+    """
     if not mapping:
         return []
 
@@ -95,14 +99,20 @@ def build_message_thread(mapping):
     messages = []
     visited = set()
 
-    def traverse(node_id):
+    # Iterative depth-first traversal using a stack
+    # We push children in reverse order so the first child is processed first
+    stack = [root]
+
+    while stack:
+        node_id = stack.pop()
+
         if node_id in visited:
-            return
+            continue
         visited.add(node_id)
 
         node = nodes.get(node_id)
         if not node:
-            return
+            continue
 
         message = node.get('message')
         if message:
@@ -117,11 +127,12 @@ def build_message_thread(mapping):
                     'time': create_time
                 })
 
+        # Push children in reverse order so first child is popped first
         children = node.get('children', [])
-        for child_id in children:
-            traverse(child_id)
+        for child_id in reversed(children):
+            if child_id not in visited:
+                stack.append(child_id)
 
-    traverse(root)
     return messages
 
 
