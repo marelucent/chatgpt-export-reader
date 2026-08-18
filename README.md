@@ -46,6 +46,13 @@ No installation required beyond Python. No accounts. No internet connection need
 
 You'll get a folder with `conversations.json` inside.
 
+> **Newer exports (2026 onwards) look different.** Your conversations may be
+> buried inside the export as a *second* zip file, e.g.
+> `User Online Activity/Conversations__...-chatgpt-0001.zip` — unzip that too.
+> Inside you'll find either a single `conversations.json` or several chunked
+> files (`conversations-000.json`, `conversations-001.json`, ...). Both work:
+> just put `convert.py` in the same folder as those files and run it.
+
 ### Step 2: Run the converter
 
 1. Copy `convert.py` into the same folder as `conversations.json`

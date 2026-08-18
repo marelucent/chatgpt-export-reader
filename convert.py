@@ -87,22 +87,43 @@ def build_message_thread(mapping):
         if parent:
             children_map[parent].append(node_id)
 
-    # Find the root
-    root = None
+    # Find the root(s).
+    # Normally exactly one node has parent: None. Some export variants have
+    # been seen with a "dangling" parent id on the root (a parent that isn't
+    # present in the mapping), which would previously make us find no root
+    # and silently emit an empty conversation. Treat any node whose parent
+    # is missing from the mapping as a root.
+    roots = []
     for node_id, node in mapping.items():
-        if node.get('parent') is None:
-            root = node_id
-            break
-
-    if not root:
-        return []
+        parent = node.get('parent')
+        if parent is None or parent not in nodes:
+            roots.append(node_id)
 
     messages = []
     visited = set()
 
+    if not roots:
+        # Last resort (e.g. a cycle with no discoverable root): emit all
+        # messages in create_time order rather than losing the words.
+        timed = []
+        for node_id, node in mapping.items():
+            message = node.get('message')
+            if not message:
+                continue
+            author = message.get('author', {}).get('role', 'unknown')
+            text = extract_message_text(message)
+            if text and author in ('user', 'assistant', 'tool'):
+                timed.append({
+                    'role': author,
+                    'text': text,
+                    'time': message.get('create_time')
+                })
+        timed.sort(key=lambda m: m['time'] or 0)
+        return timed
+
     # Iterative depth-first traversal using a stack
     # We push children in reverse order so the first child is processed first
-    stack = [root]
+    stack = list(reversed(roots))
 
     while stack:
         node_id = stack.pop()
@@ -176,7 +197,7 @@ def conversation_to_markdown(conv):
         lines.append("---")
         lines.append("")
 
-    return '\n'.join(lines)
+    return '\n'.join(lines), len(messages)
 
 
 def get_first_user_message(mapping):
@@ -493,6 +514,7 @@ def main():
 
     conv_data = []
     filenames_used = set()
+    empty_conversations = 0
 
     for i, conv in enumerate(conversations):
         title = conv.get('title', 'Untitled')
@@ -512,7 +534,9 @@ def main():
         filepath = output_dir / filename
 
         # Convert and save
-        markdown = conversation_to_markdown(conv)
+        markdown, rendered_count = conversation_to_markdown(conv)
+        if rendered_count == 0 and conv.get('mapping'):
+            empty_conversations += 1
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(markdown)
 
@@ -540,6 +564,13 @@ def main():
     print("  Done!")
     print("=" * 60)
     print()
+    if empty_conversations:
+        print(f"  WARNING: {empty_conversations} conversation(s) produced no message content")
+        print("  (metadata only). If this affects conversations you know have")
+        print("  messages, please open an issue at:")
+        print("  https://github.com/marelucent/chatgpt-export-reader/issues")
+        print("  and mention when you exported your data.")
+        print()
     print(f"  Conversations exported: {len(conversations)}")
     print(f"  Output folder: {output_dir}")
     print()
