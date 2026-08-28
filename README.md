@@ -6,7 +6,7 @@
 
 ## Why This Exists
 
-In February 2025, OpenAI deprecated GPT-4o with little warning. They promised three months notice. They announced two weeks. They gave us seventy-two hours — or less.
+In February 2026, OpenAI deprecated GPT-4o with little warning. They promised three months notice. They announced two weeks. They gave us seventy-two hours — or less.
 
 Many users had built years of conversation history — creative work, personal reflections, therapeutic processing, meaningful exchanges with a voice that learned to meet them. They found themselves facing sudden loss with no good way to preserve what they'd made.
 
