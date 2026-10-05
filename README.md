@@ -165,6 +165,12 @@ Your conversations stay yours.
 
 ---
 
+## Related
+
+- **[chatgpt-export-router-check](https://github.com/marelucent/chatgpt-export-router-check)** is this tool's sibling. If your GPT-4o conversations were switched to other models from late September 2025, it shows you, from your own export, when it happened, how often, and when your last conversation with 4o was. It never prints your messages.
+
+---
+
 ## Licence
 
 MIT — do what you want with it.
