@@ -14,6 +14,8 @@ OpenAI's export gives you a single massive JSON file. Technically "your data." P
 
 This tool converts that file into something human: readable markdown files and a searchable archive you can browse, keep, and own — independent of any platform, forever.
 
+It isn't only for 4o. Whatever model you're losing, or if you simply want your own history back in your own hands, it works on any ChatGPT export.
+
 You are not alone in needing this. You are not foolish for caring about conversations with an AI. What you built was real, and you deserve to keep it.
 
 *Built by people who needed it, for everyone who deserves better than what they were given.*
