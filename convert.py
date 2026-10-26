@@ -78,6 +78,11 @@ def build_message_thread(mapping):
     if not mapping:
         return []
 
+    # Rebuild the tree from each node's `parent` pointer. Older exports also
+    # carried a `children` list on every node; exports from October 2026
+    # onwards do not (issue #3), so the parent pointers are the only reliable
+    # source. Where a node does still carry `children`, keep any ids from it
+    # that the parent pointers missed.
     children_map = defaultdict(list)
     nodes = {}
 
@@ -86,6 +91,19 @@ def build_message_thread(mapping):
         parent = node.get('parent')
         if parent:
             children_map[parent].append(node_id)
+
+    for node_id, node in mapping.items():
+        for child_id in node.get('children', []) or []:
+            if child_id in mapping and child_id not in children_map[node_id]:
+                children_map[node_id].append(child_id)
+
+    def node_time(node_id):
+        message = nodes.get(node_id, {}).get('message') or {}
+        return message.get('create_time') or 0
+
+    # Regenerated replies give a node several children; walk them oldest first.
+    for node_id in children_map:
+        children_map[node_id].sort(key=node_time)
 
     # Find the root(s).
     # Normally exactly one node has parent: None. Some export variants have
@@ -149,8 +167,10 @@ def build_message_thread(mapping):
                     'time': create_time
                 })
 
-        # Push children in reverse order so first child is popped first
-        children = node.get('children', [])
+        # Push children in reverse order so first child is popped first.
+        # Use the map rebuilt from parent pointers, never the node's own
+        # `children` key — newer exports don't have one (issue #3).
+        children = children_map.get(node_id, [])
         for child_id in reversed(children):
             if child_id not in visited:
                 stack.append(child_id)
