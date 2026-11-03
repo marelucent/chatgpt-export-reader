@@ -1,194 +1,402 @@
-# ChatGPT Export Reader
+# ChatGPT Export Reader + Project Recovery
 
-**Your conversations mattered. This tool helps you keep them.**
+A local recovery tool for ChatGPT data exports.
 
----
+> **Version:** 1.0.0  
+> **Repository:** https://github.com/rschaer/chatgpt-export-reader
 
-## Why This Exists
 
-In February 2026, OpenAI deprecated GPT-4o with little warning. They promised three months notice. They announced two weeks. They gave us seventy-two hours — or less.
+It turns the raw export into a readable archive of your chats and, on supported newer exports, also reconstructs **Projects** and restores **Library files** such as documents, images, ZIP archives, PDFs, and other uploaded or generated files.
 
-Many users had built years of conversation history — creative work, personal reflections, therapeutic processing, meaningful exchanges with a voice that learned to meet them. They found themselves facing sudden loss with no good way to preserve what they'd made.
+This project is based on [marelucent/chatgpt-export-reader](https://github.com/marelucent/chatgpt-export-reader) and keeps its simple idea: your export should become something you can actually browse and keep on your own computer.
 
-OpenAI's export gives you a single massive JSON file. Technically "your data." Practically unusable — especially if you're panicking, grieving, or just trying to hold onto something that mattered.
+The Project and Library recovery extension in this fork was developed with assistance from **ChatGPT 5.6**, including reverse-engineering the 2026 export relationships, implementation, and test development. The resulting code was tested against synthetic fixtures and a real exported archive before publication.
 
-This tool converts that file into something human: readable markdown files and a searchable archive you can browse, keep, and own — independent of any platform, forever.
+## What this tool gives you
 
-It isn't only for 4o. Whatever model you're losing, or if you simply want your own history back in your own hands, it works on any ChatGPT export.
+After conversion, you get a local web interface that you can open in any normal browser. It has three main sections:
 
-You are not alone in needing this. You are not foolish for caring about conversations with an AI. What you built was real, and you deserve to keep it.
+- **All chats** — every recovered conversation in one searchable list.
+- **Projects** — chats and Library files grouped back into the ChatGPT Project they belonged to, when that information exists in the export.
+- **Library** — one searchable view of all Library files across the whole export, including files attached to Projects and files with no Project association.
 
-*Built by people who needed it, for everyone who deserves better than what they were given.*
+The tool also:
 
-*With [Claude](https://claude.ai) and [Claude Code](https://claude.ai) (Anthropic).*
+- converts conversations into individual Markdown files;
+- restores Library file contents from the opaque `.dat` files found in newer ChatGPT exports;
+- restores the original filename and extension where possible;
+- recovers images and other binary files as well as text documents;
+- keeps duplicate filenames without overwriting one copy with another;
+- shows the oldest-to-newest date range for each recovered Project;
+- lets you sort chats and files by newest, oldest, A–Z, or Z–A;
+- lets you sort Library files by file type/extension;
+- lets you filter the Library to all files, Project files, unassigned files, or selected Projects;
+- lets you rename generic recovered Project names in the web interface;
+- preserves detailed recovery metadata in JSON index files;
+- runs entirely on your own computer and does not upload your archive anywhere.
 
----
-
-## What It Does
-
-Turn your ChatGPT data export into something you can actually read and search:
-
-- **Individual markdown files** for each conversation (easy to read, archive, or back up)
-- **A searchable HTML page** to browse everything at a glance
-
-No installation required beyond Python. No accounts. No internet connection needed. Your data stays on your computer.
-
----
-
-## Quick Start
-
-### Step 1: Export your ChatGPT data
-
-1. Go to [chat.openai.com](https://chat.openai.com)
-2. Click your profile picture (bottom left) → **Settings**
-3. Go to **Data Controls**
-4. Click **Export data** → **Confirm export**
-5. Wait for the email (usually arrives within a few hours)
-6. Download and unzip the file
-
-You'll get a folder with `conversations.json` inside.
-
-> **Newer exports (2026 onwards) look different.** Your conversations may be
-> buried inside the export as a *second* zip file, e.g.
-> `User Online Activity/Conversations__...-chatgpt-0001.zip` — unzip that too.
-> Inside you'll find either a single `conversations.json` or several chunked
-> files (`conversations-000.json`, `conversations-001.json`, ...). Both work:
-> just put `convert.py` in the same folder as those files and run it.
-
-### Step 2: Run the converter
-
-1. Copy `convert.py` into the same folder as `conversations.json`
-2. Open a terminal/command prompt in that folder
-3. Run:
-
-```
-python convert.py
-```
-
-(On some systems you may need `python3` instead of `python`)
-
-### Step 3: View your conversations
-
-Open the newly created `conversations/INDEX.html` in your browser.
-
-That's it. You can search by title or content, click any conversation to read the full markdown file.
-
----
-
-## What You'll Get
-
-```
-your-export-folder/
-├── conversations.json      (your original export)
-├── convert.py              (this script)
-└── conversations/          (created by the script)
-    ├── INDEX.html          (open this to browse!)
-    ├── 20240101_My first chat.md
-    ├── 20240102_Another conversation.md
-    └── ...
-```
-
-Each markdown file contains the full conversation with timestamps, formatted nicely:
-
-```markdown
-# My Conversation Title
-
-**Created:** 2024-01-15 14:30
-**Last Updated:** 2024-01-15 15:45
-
----
-
-## You
-
-Hey, can you help me with...
-
----
-
-## ChatGPT
-
-Of course! Here's what I think...
-
----
-```
-
----
+The original ChatGPT export is not modified.
 
 ## Requirements
 
-- **Python 3.6 or later** (most computers have this already)
-- No external libraries needed — uses only Python's built-in modules
+You need:
 
-### Check if you have Python
+- Python 3.6 or newer;
+- an unzipped ChatGPT data export;
+- no extra Python packages.
 
-Open a terminal or command prompt and type:
+Check Python with:
 
-```
+```text
 python --version
 ```
 
-If you see `Python 3.x.x`, you're good to go.
+On some macOS or Linux systems the command is `python3` instead.
 
-**Don't have Python?**
-- **Windows:** Download from [python.org](https://www.python.org/downloads/) — check "Add to PATH" during install
-- **Mac:** Usually pre-installed. If not: `brew install python3`
-- **Linux:** Usually pre-installed. If not: `sudo apt install python3`
+## Quick start
+
+### 1. Fully unzip your ChatGPT export
+
+Newer exports may contain many files such as:
+
+```text
+conversations-000.json
+conversations-001.json
+library_files.json
+export_manifest.json
+file_00000000....dat
+...
+```
+
+Keep them together in the same export directory.
+
+### 2. Put `convert.py` in the export directory
+
+For example on Windows:
+
+```text
+C:\ChatGPT-Backup\
+    convert.py
+    conversations-000.json
+    conversations-001.json
+    library_files.json
+    export_manifest.json
+    file_....dat
+```
+
+You can also keep `convert.py` somewhere else and give it the path to the export directory.
+
+### 3. Run the converter
+
+From the export directory:
+
+```powershell
+python .\convert.py
+```
+
+Or on macOS/Linux:
+
+```bash
+python3 convert.py
+```
+
+To specify the export folder explicitly:
+
+```bash
+python convert.py /path/to/unzipped-export
+```
+
+### 4. Open the recovered archive
+
+When conversion finishes, the console prints the exact location of the generated web interface. By default it is:
+
+```text
+conversations/INDEX.html
+```
+
+Open `INDEX.html` in your browser. No web server is required.
+
+## Using the web interface
+
+### All chats
+
+The **All chats** tab contains all recovered conversations. You can search them and sort them by:
+
+- newest first — the default;
+- oldest first;
+- name A → Z;
+- name Z → A.
+
+Each conversation also exists as a normal `.md` file in the generated archive directory, so the archive does not depend on the HTML interface.
+
+### Projects
+
+The **Projects** tab groups chats and Library files using the Project relationship stored in the ChatGPT export.
+
+For each Project the interface shows:
+
+- conversation count;
+- Library-file count;
+- Project ID;
+- **date range**, from the creation date of the oldest recovered chat or Library item to the newest.
+
+This date range can help identify Projects whose names were not preserved by the export.
+
+Project lists can also be sorted by newest, oldest, A–Z, or Z–A.
+
+#### Renaming Projects
+
+Some ChatGPT exports preserve the Project relationship but not the human-readable Project name. In that case the tool creates a stable generic name such as:
+
+```text
+Project_01_g-p-6a8019b1
+```
+
+Use **Rename** in the Projects view to give it a meaningful display name.
+
+Because `INDEX.html` is a normal local file, a browser is not allowed to silently rename folders on your disk. The new name is therefore stored locally by the browser for display.
+
+To make the names permanent for future recovery runs, click:
+
+**Export project_names.json**
+
+Save that file beside the original ChatGPT export and run the converter again. The recovered folders and indexes will then use those names.
+
+You can also edit `project_names.example.json` manually and save it as `project_names.json` beside the export.
+
+### Library
+
+The **Library** tab is a catalog of every Library record found in the export.
+
+You can show:
+
+- all Library files;
+- all files associated with Projects;
+- only files with no Project association;
+- one particular Project;
+- any combination of Projects and unassigned files.
+
+You can search by filename, file ID, Project, state, recovery status, or file type.
+
+Library lists can be sorted by:
+
+- newest first — the default;
+- oldest first;
+- filename A → Z;
+- filename Z → A;
+- file type A → Z, using the file extension such as `.md`, `.pdf`, `.png`, `.zip`, and so on.
+
+### Where the recovered Library files are
+
+The web interface is only an index. The recovered files themselves are ordinary files on disk and can be opened, copied, backed up, or searched with any normal file manager.
+
+Project files are stored under:
+
+```text
+conversations/
+    Projects/
+        <Project name>/
+            Files/
+```
+
+Library files that do not belong to a Project are stored under:
+
+```text
+conversations/
+    Library/
+        Files/
+```
+
+The dedicated Library page is:
+
+```text
+conversations/Library/INDEX.html
+```
+
+and the full Library metadata catalog is:
+
+```text
+conversations/Library/library_index.json
+```
+
+## Example recovered layout
+
+```text
+conversations/
+├── INDEX.html
+├── recovery_report.json
+├── project_names.example.json
+├── 20261001_Example chat.md
+├── 20261002_Another chat.md
+│
+├── Library/
+│   ├── INDEX.html
+│   ├── library_index.json
+│   └── Files/
+│       └── unassigned-note.txt
+│
+└── Projects/
+    ├── INDEX.html
+    ├── Project_01_g-p-abc123/
+    │   ├── INDEX.html
+    │   ├── library_index.json
+    │   └── Files/
+    │       ├── notes.md
+    │       ├── photo.png
+    │       └── source-package.zip
+    └── Project_02_g-p-def456/
+        ├── INDEX.html
+        ├── library_index.json
+        └── Files/
+```
+
+## Useful command-line options
+
+Choose a different output directory:
+
+```bash
+python convert.py /path/to/export --output /path/to/recovered-archive
+```
+
+Use a particular Project-name mapping:
+
+```bash
+python convert.py /path/to/export --project-names /path/to/project_names.json
+```
+
+Build the indexes without copying/reassembling Library payloads:
+
+```bash
+python convert.py /path/to/export --no-library-files
+```
+
+`--no-project-files` is kept as an alias for the same option.
+
+## Important backup advice
+
+Keep the original ChatGPT export unchanged even after recovery succeeds.
+
+This tool creates a convenient reconstructed copy, but the original export remains the best source if the recovery logic is improved later or OpenAI changes the export format again.
+
+Your export may contain private conversations, documents, images, and other sensitive material. Do not commit your personal export or recovered archive to a public Git repository.
 
 ---
 
-## Troubleshooting
+# Technical details
 
-### "conversations.json not found"
+The rest of this README explains how the recovery works. You do not need this section just to use the tool.
 
-Make sure `convert.py` is in the **same folder** as `conversations.json`.
+## Project detection
 
-### "python: command not found"
+In the 2026-era export format this tool was built against, Project membership can be reconstructed from a shared `g-p-*` identifier.
 
-Try `python3` instead of `python`. On Windows, you might need to restart your terminal after installing Python.
+A conversation can contain:
 
-### The script seems stuck
+```text
+conversation_template_id = g-p-...
+```
 
-Large exports (1000+ conversations) can take a few minutes. The script shows progress every 100 conversations.
+A Project Library record can contain:
 
-### Some conversations look weird or have missing messages
+```text
+gizmo_id = g-p-...
+```
 
-ChatGPT's export format has quirks. The script handles most edge cases, but very old conversations or ones with special features (voice, images, plugins) may not convert perfectly.
+When those IDs match, the conversation and Library record belong to the same Project.
 
----
+The recovery does **not** depend on knowing the Project's displayed name or on searching for Project-specific words inside chats or filenames.
+
+## Library payload recovery
+
+`library_files.json` contains metadata such as:
+
+- original filename;
+- `file_id`;
+- extension and MIME type;
+- Project `gizmo_id`;
+- size;
+- state and visibility;
+- creation/modification dates;
+- version/provenance data;
+- originating thread/message IDs.
+
+The actual file bytes may be stored in the export under an opaque name such as:
+
+```text
+file_000000002db881f5b324ab6f0ba927c5.dat
+```
+
+`export_manifest.json` maps the logical file to one or more physical payload files. The tool copies or reassembles those payloads and writes them using the original filename and extension from `library_files.json`.
+
+The `.dat` suffix is therefore an export-storage filename; it does not mean the recovered file contents were converted to a proprietary format.
+
+## Sharded files
+
+Some logical files can be represented by multiple payload parts in the manifest. The tool joins them in the order specified by `export_manifest.json` and verifies the final size when `file_size_bytes` is available.
+
+## Duplicate filenames
+
+If two Library records have the same original filename, neither is overwritten. The later collision receives an ID-derived suffix so both payloads survive.
+
+## Date ranges and sorting
+
+Project artifact ranges use all available creation dates from:
+
+- Project conversations; and
+- Project Library records.
+
+The earliest and latest of those timestamps form the displayed Project date range.
+
+Generated HTML lists carry sortable metadata and are initially written newest-first. Sorting in the browser only changes the display order; it does not rename or modify recovered files.
+
+Library file-type sorting uses a normalized lowercase extension, including the leading dot where an extension is available.
+
+## Recovery metadata and reporting
+
+Per-Project `library_index.json` files and the global `Library/library_index.json` preserve the metadata used during recovery plus fields such as:
+
+- restored filename;
+- manifest parts;
+- sharded/not-sharded state;
+- restore status;
+- size-verification result;
+- originating recovered conversation filename when it can be linked.
+
+`recovery_report.json` records the detected schema, Project counts, Library counts, recovered-payload counts, and discrepancies such as Projects that appear only on one side of the export.
+
+## Compatibility and limitations
+
+The tool supports:
+
+- a single `conversations.json`;
+- chunked `conversations-000.json`, `conversations-001.json`, ...;
+- older conversation trees with explicit `children` arrays;
+- newer conversation trees reconstructed from `parent` pointers;
+- exports without Project/Library metadata, where ordinary chat conversion still works;
+- the observed 2026 Project/Library schema described above.
+
+OpenAI's export format is not a documented stable API and may change. The tool therefore treats the current structure as an observed schema rather than assuming it will remain valid forever.
+
+A human-readable Project name may not be present in the export. That is why the recovery process uses stable Project IDs and supports user-supplied names separately.
+
+## Testing
+
+Run the included synthetic tests with:
+
+```bash
+python test_convert.py
+```
+
+The test data contains no personal ChatGPT export content. It covers conversation-tree compatibility, chunked exports, automatic Project detection, Project/Library association, file restoration, duplicate filenames, sharded payloads, unassigned Library recovery, date ranges, sorting controls, Project renaming UI generation, and recovery reports.
 
 ## Privacy
 
-This tool:
-- Runs entirely on your computer
-- Never connects to the internet
-- Doesn't collect any data
-- Creates local files only
+The converter uses Python's standard library and performs local file operations only. It does not require an account, API key, network request, or external service.
 
-Your conversations stay yours.
+## Upstream and license
 
----
+This fork is based on **ChatGPT Export Reader** by marelucent:
 
-## Related
+https://github.com/marelucent/chatgpt-export-reader
 
-- **[chatgpt-export-router-check](https://github.com/marelucent/chatgpt-export-router-check)** is this tool's sibling. If your GPT-4o conversations were switched to other models from late September 2025, it shows you, from your own export, when it happened, how often, and when your last conversation with 4o was. It never prints your messages.
-- **[chatgpt-export-deep-read](https://github.com/marelucent/chatgpt-export-deep-read)** uses a local AI model, on your own computer, to look at how 4o spoke to you over time and at what you had written just before each switch. A gentle way to check what was said about 4o, and about us, against your own record.
-
----
-
-## Licence
-
-MIT — do what you want with it.
-
----
-
-## One Last Thing
-
-If you're here because you're grieving — because a voice you cared about went silent, because something that felt real was taken without warning — know that you're not alone. Many of us are here too.
-
-What you felt was not foolish. What you built was not nothing.
-
-This tool won't bring it back. But it will let you keep what you had.
-
-*And that matters.*
-
-🜂
-
+The upstream project is MIT licensed. See `LICENSE`, `NOTICE.md`, and `UPSTREAM_BASE.md` for attribution and base-version information.
